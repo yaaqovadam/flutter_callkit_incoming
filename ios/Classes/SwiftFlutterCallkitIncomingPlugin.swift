@@ -237,40 +237,91 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         return nil
     }
     
-    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool) {
-        self.isFromPushKit = fromPushKit
-        if(fromPushKit){
-            self.data = data
-        }
-        
-        var handle: CXHandle?
-        handle = CXHandle(type: self.getHandleType(data.handleType), value: data.getEncryptHandle())
-        
-        let callUpdate = CXCallUpdate()
-        callUpdate.remoteHandle = handle
-        callUpdate.supportsDTMF = data.supportsDTMF
-        callUpdate.supportsHolding = data.supportsHolding
-        callUpdate.supportsGrouping = data.supportsGrouping
-        callUpdate.supportsUngrouping = data.supportsUngrouping
-        callUpdate.hasVideo = data.type > 0 ? true : false
-        callUpdate.localizedCallerName = data.nameCaller
-        
-        initCallkitProvider(data)
-        
-        let uuid = UUID(uuidString: data.uuid)
-        
-        configurAudioSession()
-        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
-            if(error == nil) {
-                self.configurAudioSession()
-                let call = Call(uuid: uuid!, data: data)
-                call.handle = data.handle
-                self.callManager.addCall(call)
-                self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
-                self.endCallNotExist(data)
-            }
-        }
-    }
+//    @objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool) {
+//        self.isFromPushKit = fromPushKit
+//        if(fromPushKit){
+//            self.data = data
+//        }
+//        
+//        var handle: CXHandle?
+//        handle = CXHandle(type: self.getHandleType(data.handleType), value: data.getEncryptHandle())
+//        
+//        let callUpdate = CXCallUpdate()
+//        callUpdate.remoteHandle = handle
+//        callUpdate.supportsDTMF = data.supportsDTMF
+//        callUpdate.supportsHolding = data.supportsHolding
+//        callUpdate.supportsGrouping = data.supportsGrouping
+//        callUpdate.supportsUngrouping = data.supportsUngrouping
+//        callUpdate.hasVideo = data.type > 0 ? true : false
+//        callUpdate.localizedCallerName = data.nameCaller
+//        
+//        initCallkitProvider(data)
+//        
+//        let uuid = UUID(uuidString: data.uuid)
+//        
+//        configurAudioSession()
+//        self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
+//            if(error == nil) {
+//                self.configurAudioSession()
+//                let call = Call(uuid: uuid!, data: data)
+//                call.handle = data.handle
+//                self.callManager.addCall(call)
+//                self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
+//                self.endCallNotExist(data)
+//            }
+//        }
+//    }
+	
+	
+	@objc public func showCallkitIncoming(_ data: Data, fromPushKit: Bool) {
+		self.isFromPushKit = fromPushKit
+		if(fromPushKit){
+			self.data = data
+		}
+		
+			// Add this print statement:
+		print("CallkitIncoming: Dart data.type = \(data.type)")
+		print("CallkitIncoming: Dart data.supportsVideo = \(data.supportsVideo)")
+		
+		var handle: CXHandle?
+		handle = CXHandle(type: self.getHandleType(data.handleType), value: data.getEncryptHandle())
+		
+		let callUpdate = CXCallUpdate()
+		callUpdate.remoteHandle = handle
+		callUpdate.supportsDTMF = data.supportsDTMF
+		callUpdate.supportsHolding = data.supportsHolding
+		callUpdate.supportsGrouping = data.supportsGrouping
+		callUpdate.supportsUngrouping = data.supportsUngrouping
+		callUpdate.hasVideo = data.type > 0 ? true : false
+		
+			// Add this print statement:
+		print("CallkitIncoming: CXCallUpdate.hasVideo set to: \(callUpdate.hasVideo)")
+		
+		
+		initCallkitProvider(data) // This uses data.supportsVideo internally.
+		
+			// Add this print statement to verify the provider configuration
+		if let config = self.sharedProvider?.configuration {
+			print("CallkitIncoming: CXProviderConfiguration.supportsVideo set to: \(config.supportsVideo)")
+		}
+		
+		
+		let uuid = UUID(uuidString: data.uuid)
+		
+		configurAudioSession()
+		self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
+			if(error == nil) {
+				self.configurAudioSession()
+				let call = Call(uuid: uuid!, data: data)
+				call.handle = data.handle
+				self.callManager.addCall(call)
+				self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
+				self.endCallNotExist(data)
+			} else {
+				print("CallkitIncoming: Error reporting new incoming call: \(error?.localizedDescription ?? "unknown error")")
+			}
+		}
+	}
     
     @objc public func startCall(_ data: Data, fromPushKit: Bool) {
         self.isFromPushKit = fromPushKit
@@ -630,7 +681,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
 		
 		let body: [String: Any?] = [
 			"id": callUUID,
-			"isVideoEnabled": isVideoEnabled  
+			"isVideoEnabled": isVideoEnabled
 		]
 		
 			// Use the existing sendEvent method to push this to Flutter
