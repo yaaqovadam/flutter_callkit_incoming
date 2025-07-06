@@ -623,6 +623,23 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TOGGLE_DMTF, [ "id": action.callUUID.uuidString, "digits": action.digits, "type": action.type.rawValue ])
         action.fulfill()
     }
+	
+	public func provider(_ provider: CXProvider, performSetVideoEnabled action: CXSetVideoEnabledAction, completionHandler: @escaping () -> Void) {
+		let callUUID = action.call.uuid.uuidString
+		let isVideoEnabled = action.isVideoEnabled
+		
+		let body: [String: Any?] = [
+			"id": callUUID,
+			"isVideoEnabled": isVideoEnabled  
+		]
+		
+			// Use the existing sendEvent method to push this to Flutter
+		self.sendEvent("actionToggleVideo", body)
+		
+			// You must call fulfill() and the completion handler for CallKit to process the action
+		action.fulfill()
+		completionHandler()
+	}
     
     
     public func provider(_ provider: CXProvider, timedOutPerforming action: CXAction) {
